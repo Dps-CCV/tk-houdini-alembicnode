@@ -76,7 +76,7 @@ configuration:
                     description: >
                         A reference to a template which defines where the
                         alembic cache will be written to disk.
-                    fields: context, version, [name], [node]
+                    fields: context, version, [name], [node], [extension]
 
 
 # the Shotgun fields that this app needs in order to operate correctly

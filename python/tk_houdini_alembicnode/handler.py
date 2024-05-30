@@ -419,6 +419,10 @@ class TkAlembicNodeHandler(object):
 
         output_path_parm = node.parm(self.NODE_OUTPUT_PATH_PARM)
         output_path_parm.set(output_path_parm.eval())
+        publish_template_parm = node.parm("publish_template")
+        publish_template_parm.lock(False)
+        publish_template_parm.set(self.get_publish_template(node))
+        publish_template_parm.lock(True)
 
     # open a file browser showing the render path of the current node
     def show_in_fs(self):
@@ -492,6 +496,12 @@ class TkAlembicNodeHandler(object):
             # ingore any errors. ex: metrics logging not supported
             pass
 
+    def get_publish_template(self, node=None):
+        output_profile = self._get_output_profile(node)
+        publish_cache_template = output_profile["publish_cache_template"]
+
+        return publish_cache_template
+
     ############################################################################
     # Private methods
 
@@ -519,6 +529,7 @@ class TkAlembicNodeHandler(object):
             "renderpass": node.name(),
             "SEQ": "FORMAT: $F",
             "version": work_file_fields.get("version", None),
+            "extension": "abc",
         }
 
         fields.update(self._app.context.as_template_fields(output_cache_template))
@@ -544,7 +555,17 @@ class TkAlembicNodeHandler(object):
 
     # extract fields from current Houdini file using the workfile template
     def _get_hipfile_fields(self):
-        current_file_path = hou.hipFile.path()
+        if hou.isUIAvailable():
+            current_file_path = hou.hipFile.path()
+        # Exeption for when we are on the render farm and using the backup hip
+        # TODO put this environment variable in info.yml, hardcoded here
+        else:
+            env_hip = os.getenv('NOZ_HIPFILE')
+            print (env_hip)
+            if env_hip:
+                current_file_path = env_hip
+            else:
+                self._app.log_error('Could not find origin hip file!')
 
         work_fields = {}
         work_file_template = self._app.get_template("work_file_template")
